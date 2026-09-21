@@ -182,11 +182,18 @@ function Index() {
     const btn = gameBtnRef.current;
     if (!btn) return;
 
-    // Invisible hit-area ring around the button (tracks the button's raised
-    // position: bottom-24 on the anchor = 6rem, right-5 = 1.25rem).
+    // Invisible hit-area ring around the button — centered on it at any
+    // breakpoint (the anchor moves: bottom-5 on mobile, bottom-24 on sm+).
     const zone = document.createElement("div");
     zone.style.cssText =
-      "position:fixed;right:1.25rem;bottom:6rem;width:6rem;height:6rem;border-radius:9999px;z-index:19;";
+      "position:fixed;width:6rem;height:6rem;border-radius:9999px;z-index:19;";
+    const syncZone = () => {
+      const r = btn.getBoundingClientRect();
+      zone.style.left = `${r.left + r.width / 2 - 48}px`;
+      zone.style.top = `${r.top + r.height / 2 - 48}px`;
+    };
+    syncZone();
+    window.addEventListener("resize", syncZone);
     document.body.appendChild(zone);
 
     // wiggle loop — never gated. yoyo makes each pass retrace 0°->12°->0° so
@@ -243,6 +250,7 @@ function Index() {
     return () => {
       mm.revert();
       wiggle.kill();
+      window.removeEventListener("resize", syncZone);
       zone.remove();
     };
   }, []);
@@ -517,7 +525,7 @@ function Index() {
         ref={gameBtnRef}
         href="/jeu"
         aria-label="Perds du temps en jouant"
-        className="fixed right-5 bottom-24 z-20 flex items-center gap-2 rounded-full bg-[#39ff14] px-5 py-3 text-sm font-bold text-[#062b00] shadow-[0_0_18px_rgba(57,255,20,0.55),0_0_44px_rgba(57,255,20,0.3)] transition-shadow hover:shadow-[0_0_24px_rgba(57,255,20,0.8),0_0_60px_rgba(57,255,20,0.4)]"
+        className="fixed right-5 bottom-5 z-20 flex items-center gap-2 rounded-full bg-[#39ff14] px-5 py-3 text-sm font-bold text-[#062b00] shadow-[0_0_18px_rgba(57,255,20,0.55),0_0_44px_rgba(57,255,20,0.3)] transition-shadow hover:shadow-[0_0_24px_rgba(57,255,20,0.8),0_0_60px_rgba(57,255,20,0.4)] sm:bottom-24"
       >
         <svg
           viewBox="0 0 24 24"
