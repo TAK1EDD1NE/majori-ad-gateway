@@ -147,7 +147,7 @@ function Index() {
     value: lv,
     label:
       groups.find((g) => g.level === lv)?.label.match(/^(.*?)\s*[—–-]/)?.[1]?.trim() ||
-      (lv === "4" ? "4e année" : lv === "3" ? "3e année" : lv),
+      (lv === "5" ? "5e année" : lv === "4" ? "4e année" : lv === "3" ? "3e année" : lv),
   }));
   const rotationsForLevel = (lv: string) =>
     [...new Set(groups.filter((g) => g.level === lv).map((g) => g.rotation))].map((r) => ({

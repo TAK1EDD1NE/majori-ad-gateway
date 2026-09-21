@@ -18,7 +18,7 @@ DSN = f"postgresql://postgres.{REF}:{PASSWORD}@aws-0-eu-west-2.pooler.supabase.c
 
 GROUPS = [
     # (level, rotation, label, chat_id)  — level/rotation values match the site's VALID_LEVELS/ROTATIONS
-    ("4", "rot1", "4e année — Rotation 1 (M22/25 Rotation 1)", "-1004299862715"),
+    ("5", "rot1", "5e année — Rotation 1 (M22/25 Rotation 1)", "-1004299862715"),
 ]
 
 with psycopg.connect(DSN, connect_timeout=15, sslmode="require") as conn:

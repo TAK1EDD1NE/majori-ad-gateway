@@ -17,7 +17,7 @@ export type VerifyInput = {
 };
 
 const MAX_BYTES = 5 * 1024 * 1024;
-const VALID_LEVELS = ["4", "3"];
+const VALID_LEVELS = ["5", "4", "3"];
 const VALID_ROTATIONS = ["rot1", "rot2", "rot3"];
 const VALID_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 

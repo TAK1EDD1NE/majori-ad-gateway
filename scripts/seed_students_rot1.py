@@ -9,7 +9,7 @@ import psycopg
 import openpyxl
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LEVEL, ROTATION = "4", "rot1"
+LEVEL, ROTATION = "5", "rot1"
 XLSX = os.path.join(os.path.dirname(ROOT), "5AM ROT 1 2026-2027.xlsx")
 
 
