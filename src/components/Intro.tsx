@@ -262,7 +262,7 @@ export default function Intro({
             et réussir leurs examens grâce à des QCM intelligents.
           </p>
           <a
-            href="https://www.instagram.com/majori.qcm.25"
+            href="https://www.instagram.com/majori.qcm.25?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw=="
             target="_blank"
             rel="noreferrer"
             className="mt-8 inline-flex items-center gap-2.5 rounded-full bg-[#7c3aed] px-7 py-3.5 text-sm font-bold text-white shadow-[0_0_24px_rgba(124,58,237,0.4)] transition-all hover:scale-105 hover:shadow-[0_0_36px_rgba(124,58,237,0.65)]"

@@ -90,11 +90,12 @@ function fileToBase64(file: File): Promise<string> {
 
 /*
  * Compress a student-card photo to WebP before upload: resize so the long
- * side is at most 900px and re-encode at quality 0.75. A card photo lands
- * around 50-200 KB instead of the original multi-MB file, so the whole
+ * side is at most 700px and re-encode at quality 0.6. A card photo lands
+ * around 25-80 KB instead of the original multi-MB file, so the whole
  * student-cards bucket stays far under its storage quota even with hundreds
- * of students. Falls back to the original file if WebP encoding is
- * unavailable (ancient browsers) — the server still accepts it.
+ * of students (and the card stays readable enough for admin review). Falls
+ * back to the original file if WebP encoding is unavailable (ancient
+ * browsers) — the server still accepts it.
  */
 async function compressToWebp(file: File): Promise<File> {
   let bitmap: ImageBitmap;
@@ -103,7 +104,7 @@ async function compressToWebp(file: File): Promise<File> {
   } catch {
     return file;
   }
-  const maxSide = 900;
+  const maxSide = 700;
   const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   const w = Math.max(1, Math.round(bitmap.width * scale));
   const h = Math.max(1, Math.round(bitmap.height * scale));
@@ -120,7 +121,7 @@ async function compressToWebp(file: File): Promise<File> {
   bitmap.close();
 
   const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, "image/webp", 0.75),
+    canvas.toBlob(resolve, "image/webp", 0.6),
   );
   if (!blob) return file;
   return new File([blob], file.name.replace(/\.\w+$/, "") + ".webp", {
