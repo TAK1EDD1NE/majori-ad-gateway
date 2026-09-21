@@ -19,6 +19,7 @@ export type VerifyInput = {
 const MAX_BYTES = 5 * 1024 * 1024;
 const VALID_LEVELS = ["4", "3"];
 const VALID_ROTATIONS = ["rot1", "rot2", "rot3"];
+const VALID_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 function normalize(value: string) {
   return value
@@ -42,7 +43,7 @@ export const verifyStudent = createServerFn({ method: "POST" })
     if (!VALID_LEVELS.includes(data.level) || !VALID_ROTATIONS.includes(data.rotation)) {
       throw new Error("Niveau ou rotation invalide.");
     }
-    if (!["image/jpeg", "image/png"].includes(data.photoType)) {
+    if (!VALID_PHOTO_TYPES.includes(data.photoType)) {
       throw new Error("Format d'image non supporté.");
     }
     return data;
@@ -108,7 +109,7 @@ export const verifyStudent = createServerFn({ method: "POST" })
       return { status: "error", message: "Service indisponible. Contactez l'administration." };
     }
 
-    const ext = data.photoType === "image/png" ? "png" : "jpg";
+    const ext = data.photoType === "image/png" ? "png" : data.photoType === "image/webp" ? "webp" : "jpg";
     const path = `${match.id}/${Date.now()}.${ext}`;
     const upload = await supabaseAdmin.storage
       .from("student-cards")

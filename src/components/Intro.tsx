@@ -5,16 +5,19 @@ import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 /*
  * Majori intro — two dark pages before the verification form:
  *
- *   Page 1 (dark): big brand bird + "Majori." wordmark, flip-in entrance.
- *   Page 2 (dark): the same logo, BUT smaller and at the top of the page,
- *   with a one-sentence pitch and an Instagram follow button.
+ *   Page 1 (dark): the brand bird + "Majori." wordmark, big and centered.
+ *   Page 2 (dark): the pitch (one sentence) + Instagram follow button.
  *
- * Scrolling from page 1 to page 2 animates the big logo UP and SMALLER (the
- * choreography is a matched move: page 1's logo rises/shrinks/fades while page
- * 2's small logo rises in from just below — reads as one continuous travel).
- * The scroll is one smooth GSAP glide per page (power4.inOut); scroll-up
- * gestures are ignored. Once a dark page is left it unmounts, so it can never
- * be scrolled back to — exactly like the earlier single-page splash.
+ * The logo is ONE element throughout. It lives in page 2's DOM (its natural
+ * spot is page 2's top, small), and its initial state is parked over page 1 —
+ * centered and magnified by a pure-CSS transform (translateY + scale), so the
+ * very first paint is already correct (SSR-safe) and the flip-in entrance
+ * runs on it. Scrolling to page 2 is one smooth GSAP glide that simultaneously
+ * carries the SAME logo up to page 2's top and shrinks it to rest — it never
+ * disappears and nothing is recreated. The pitch fades in beneath it.
+ *
+ * Scroll-up gestures are ignored; every dark page unmounts once left, so
+ * neither can ever be scrolled back to.
  *
  * Animation references (ported faithfully):
  * - Word flip-in: agency-portfolio-master components/Hero.tsx ("We Build What
@@ -25,10 +28,8 @@ import { ScrollToPlugin } from "gsap/ScrollToPlugin";
  *   as ONE element, the dot in majori-coral (#7c3aed), no whitespace.
  * - Font: Sora, the same display font the portfolio headers use.
  *
- * The hidden start states are baked into the inline styles (SSR-safe) so the
- * text never paints in place and then jumps away to animate. All animations
- * play regardless of the user's reduced-motion preference (explicit product
- * requirement).
+ * All animations play regardless of the user's reduced-motion preference
+ * (explicit product requirement).
  */
 gsap.registerPlugin(ScrollToPlugin);
 
@@ -46,10 +47,9 @@ export default function Intro({
   targetRef: React.RefObject<HTMLElement | null>;
   onDone: () => void;
 }) {
-  const page1Ref = useRef<HTMLElement>(null); // big-logo dark page
-  const page2Ref = useRef<HTMLElement>(null); // about page (small logo on top)
-  const bigLogoRef = useRef<HTMLDivElement>(null);
-  const smallLogoRef = useRef<HTMLDivElement>(null);
+  const page1Ref = useRef<HTMLElement>(null); // bare dark backdrop
+  const page2Ref = useRef<HTMLElement>(null); // about page (logo top + pitch)
+  const logoBlockRef = useRef<HTMLDivElement>(null); // THE logo (shared by both pages)
   const aboutRef = useRef<HTMLDivElement>(null); // sentence + instagram button
 
   // 0 = pages 1+2 mounted (page 1 at the top) · 1 = page 1 gone, page 2 at the
@@ -75,27 +75,26 @@ export default function Intro({
 
     let transitioning = false;
 
-    // One smooth glide to the next page; page 1 -> 2 also runs the logo
-    // choreography (big logo goes up + smaller, small logo + pitch rise in).
+    // One smooth glide to the next page. Page 1 -> 2 carries THE logo block
+    // from its parked position (centered on page 1, magnified) to its rest
+    // position (page 2 top, natural size) — same element, never recreated.
     const startTransition = () => {
       if (transitioning) return;
       transitioning = true;
 
       if (stageRef.current === 0) {
+        const block = logoBlockRef.current;
+        // Offset that parks the block's center on page 1's center (page-2 top
+        // inset is 2.5rem, block height measured live).
+        const shift = -(window.innerHeight / 2 + 40 + (block?.offsetHeight ?? 0) / 2);
+
         gsap
           .timeline()
-          .to(bigLogoRef.current, {
-            y: "-38dvh",
-            scale: 0.55,
-            autoAlpha: 0.4,
-            duration: 1.2,
-            ease: "power4.inOut",
-          }, 0)
           .fromTo(
-            smallLogoRef.current,
-            { y: 36, scale: 0.8, autoAlpha: 0 },
-            { y: 0, scale: 1, autoAlpha: 1, duration: 1.0, ease: "power4.inOut" },
-            0.18
+            block,
+            { y: shift, scale: 2.5 },
+            { y: 0, scale: 1, duration: 1.2, ease: "power4.inOut" },
+            0
           )
           .fromTo(
             aboutRef.current,
@@ -166,26 +165,32 @@ export default function Intro({
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("scroll", onScroll, { passive: true });
 
-    // Entrance: bird + big wordmark flip in on page 1.
+    // Entrance: bird + big wordmark flip in (on the parked logo, page 1).
+    const logo = logoBlockRef.current;
+    const logoBird = logo?.querySelector(".intro-bird") ?? null;
+    const logoLetters = logo ? Array.from(logo.querySelectorAll(".intro-letter")) : [];
     const tl = gsap.timeline({ defaults: { ease: "power4.out" } });
     tl.fromTo(
-      page1.querySelector(".intro-bird"),
+      logoBird,
       { scale: 0.9, autoAlpha: 0 },
       { scale: 1, autoAlpha: 1, duration: 0.9, ease: "power2.out" },
       0
     ).fromTo(
-      page1.querySelectorAll(".intro-letter"),
+      logoLetters,
       { y: 60, rotateX: -80, opacity: 0 },
       { y: 0, rotateX: 0, opacity: 1, duration: 1.1, stagger: 0.07 },
       0.4
     );
 
-    // Failsafes: never hide the brand behind a dead animation.
+    // Failsafe: never hide the brand behind a dead animation.
     const showFailsafe = window.setTimeout(() => {
-      gsap.set(
-        [page1.querySelector(".intro-bird"), ...page1.querySelectorAll(".intro-letter")],
-        { opacity: 1, scale: 1, y: 0, rotateX: 0, visibility: "inherit" }
-      );
+      gsap.set([logoBird, ...logoLetters], {
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        rotateX: 0,
+        visibility: "inherit",
+      });
     }, 5000);
 
     return () => {
@@ -202,60 +207,53 @@ export default function Intro({
 
   return (
     <>
-      {/* PAGE 1 — big logo dark page (unmounts once scrolled past) */}
+      {/* PAGE 1 — bare dark backdrop (the logo floats over it from page 2) */}
       {stage === 0 && (
         <section
           ref={page1Ref}
           aria-hidden="true"
-          className="relative z-40 flex h-[100dvh] flex-col items-center justify-center gap-10 bg-black"
-        >
-          <div ref={bigLogoRef} className="flex flex-col items-center gap-10">
-            <img
-              src="/brand/bird.png"
-              alt=""
-              className="intro-bird size-40 rounded-2xl object-contain sm:size-56"
-              style={{ opacity: 0, transform: "scale(0.9)" }}
-            />
-            <h1
-              className="flex select-none gap-[0.06em] text-7xl leading-none font-bold tracking-[-0.05em] text-white sm:text-9xl"
-              style={{ perspective: "1000px", fontFamily: "Sora, ui-sans-serif, system-ui, sans-serif" }}
-            >
-              {MAJORI_CHARS.map((ch, i) => (
-                <span key={i} className="intro-letter inline-block" style={LETTER_START}>
-                  {ch}
-                </span>
-              ))}
-              <span className="intro-letter inline-block text-[#7c3aed]" style={LETTER_START}>
-                .
-              </span>
-            </h1>
-          </div>
-        </section>
+          className="relative z-40 h-[100dvh] bg-black"
+        />
       )}
 
-      {/* PAGE 2 — about page: small logo on top, pitch, Instagram CTA */}
+      {/* PAGE 2 — about page; THE logo at the top, pitch + Instagram below */}
       <section
         ref={page2Ref}
         aria-hidden="true"
         className="relative z-40 flex h-[100dvh] flex-col items-center bg-black px-6 pb-10 pt-10"
       >
-        <div ref={smallLogoRef} className="flex flex-col items-center gap-4" style={{ opacity: 0 }}>
+        {/*
+          The one and only logo. Its natural spot is here (page 2 top, small).
+          The initial transform parks it over page 1 (centered, 2.5x) — the
+          glide then brings it home; page 1 never has its own copy.
+        */}
+        <div
+          ref={logoBlockRef}
+          className="flex select-none flex-col items-center gap-4"
+          style={{
+            transform: "translateY(calc(-50dvh - 2.5rem - 50%)) scale(2.5)",
+            fontFamily: "Sora, ui-sans-serif, system-ui, sans-serif",
+          }}
+        >
           <img
             src="/brand/bird.png"
             alt=""
-            className="size-20 rounded-xl object-contain sm:size-24"
+            className="intro-bird size-16 rounded-xl object-contain sm:size-24"
+            style={{ opacity: 0, transform: "scale(0.9)" }}
           />
-          <h2
-            className="flex select-none gap-[0.06em] text-4xl leading-none font-bold tracking-[-0.05em] text-white sm:text-5xl"
-            style={{ fontFamily: "Sora, ui-sans-serif, system-ui, sans-serif" }}
+          <h1
+            className="flex gap-[0.06em] text-3xl leading-none font-bold tracking-[-0.05em] text-white sm:text-5xl"
+            style={{ perspective: "1000px" }}
           >
             {MAJORI_CHARS.map((ch, i) => (
-              <span key={i} className="inline-block">
+              <span key={i} className="intro-letter inline-block" style={LETTER_START}>
                 {ch}
               </span>
             ))}
-            <span className="inline-block text-[#7c3aed]">.</span>
-          </h2>
+            <span className="intro-letter inline-block text-[#7c3aed]" style={LETTER_START}>
+              .
+            </span>
+          </h1>
         </div>
 
         <div ref={aboutRef} className="my-auto flex w-full max-w-2xl flex-col items-center" style={{ opacity: 0 }}>

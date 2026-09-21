@@ -88,6 +88,46 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+/*
+ * Compress a student-card photo to WebP before upload: resize so the long
+ * side is at most 900px and re-encode at quality 0.75. A card photo lands
+ * around 50-200 KB instead of the original multi-MB file, so the whole
+ * student-cards bucket stays far under its storage quota even with hundreds
+ * of students. Falls back to the original file if WebP encoding is
+ * unavailable (ancient browsers) — the server still accepts it.
+ */
+async function compressToWebp(file: File): Promise<File> {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    return file;
+  }
+  const maxSide = 900;
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const w = Math.max(1, Math.round(bitmap.width * scale));
+  const h = Math.max(1, Math.round(bitmap.height * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    return file;
+  }
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close();
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/webp", 0.75),
+  );
+  if (!blob) return file;
+  return new File([blob], file.name.replace(/\.\w+$/, "") + ".webp", {
+    type: "image/webp",
+  });
+}
+
 function Index() {
   const verify = useServerFn(verifyStudent);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -245,9 +285,12 @@ function Index() {
 
     setLoading(true);
     try {
-      const photoBase64 = await fileToBase64(file);
+      // Compress the card photo to WebP first (resize + re-encode): storage
+      // stays small even with hundreds of students.
+      const webpFile = await compressToWebp(file);
+      const photoBase64 = await fileToBase64(webpFile);
       const result = (await verify({
-        data: { fullName: fullName.trim(), level, rotation, photoBase64, photoType: file.type },
+        data: { fullName: fullName.trim(), level, rotation, photoBase64, photoType: webpFile.type },
       })) as VerifyResult;
 
       if (result.status === "ok") {
