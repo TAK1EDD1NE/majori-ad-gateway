@@ -142,7 +142,11 @@ function Index() {
 
   // Distinct levels and rotations actually configured in the DB.
   // Labels from the groups table win; rotation short label is the fallback.
-  const levels = [...new Set(groups.map((g) => g.level))];
+  // Levels sorted ascending so the switcher reads 3e → 4e → 5e (the RPC
+  // returns them DESC — 5e first — which reads backwards to the student).
+  const levels = [...new Set(groups.map((g) => g.level))].sort(
+    (a, b) => Number(a) - Number(b),
+  );
   const levelOptions = levels.map((lv) => ({
     value: lv,
     label:
@@ -408,7 +412,10 @@ function Index() {
                     value={selectedLevel}
                     onChange={(v) => {
                       setLevel(v);
-                      setRotation("");
+                      // Keep the rotation pill filled: jump to the first
+                      // rotation configured for the newly chosen year instead
+                      // of blanking it (a vanished selector reads as broken).
+                      setRotation(rotationsForLevel(v)[0]?.value ?? "");
                       setError(null);
                     }}
                   />
