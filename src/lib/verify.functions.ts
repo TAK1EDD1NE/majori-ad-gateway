@@ -110,13 +110,28 @@ export const verifyStudent = createServerFn({ method: "POST" })
     }
 
     const ext = data.photoType === "image/png" ? "png" : data.photoType === "image/webp" ? "webp" : "jpg";
-    const path = `${match.id}/${Date.now()}.${ext}`;
-    const upload = await supabaseAdmin.storage
-      .from("student-cards")
-      .upload(path, bytes, { contentType: data.photoType, upsert: false });
+    const path = `student-cards/${match.id}/${Date.now()}.${ext}`;
 
-    if (upload.error) {
-      return { status: "error", message: "Échec de l'envoi de la photo. Réessayez." };
+    // Invite-first: a failed photo upload must never block the student's
+    // invite link. If the card can't be stored (full bucket, network, …) the
+    // verification continues and the student is flagged photo_missing so the
+    // admin knows the card is absent and why.
+    let photoMissing = false;
+    let photoError: string | null = null;
+    try {
+      const { uploadStudentCard } = await import("@/lib/cloudinary");
+      const upload = await uploadStudentCard(bytes, path, data.photoType);
+      if (!upload.ok) {
+        photoMissing = true;
+        photoError = upload.error;
+        console.error("[verify] card upload failed, continuing:", upload.error);
+      } else {
+        console.log("[verify] card stored:", upload.publicId);
+      }
+    } catch (err) {
+      photoMissing = true;
+      photoError = String(err);
+      console.error("[verify] card upload threw, continuing:", err);
     }
 
     const tgResponse = await fetch(`https://api.telegram.org/bot${botToken}/createChatInviteLink`, {
@@ -142,7 +157,7 @@ export const verifyStudent = createServerFn({ method: "POST" })
 
     const { error: updateError } = await supabaseAdmin
       .from("students")
-      .update({ joined: true })
+      .update({ joined: true, photo_missing: photoMissing, photo_error: photoError })
       .eq("id", match.id)
       .eq("joined", false);
 

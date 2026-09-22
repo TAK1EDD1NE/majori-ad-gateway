@@ -24,6 +24,7 @@ MIGRATIONS = [
     "supabase/migrations/20260921101500_levels_rotations_groups.sql",
     "supabase/migrations/20260921160000_list_groups_rpc.sql",
     "supabase/migrations/20260921160500_student_cards_bucket.sql",
+    "supabase/migrations/20260921190000_photo_retry.sql",
 ]
 
 def read(path):

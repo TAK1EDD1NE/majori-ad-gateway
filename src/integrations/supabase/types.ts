@@ -21,6 +21,8 @@ export type Database = {
           joined: boolean
           level: string | null
           nom: string
+          photo_error: string | null
+          photo_missing: boolean
           prenom: string
           rotation: string | null
         }
@@ -30,6 +32,8 @@ export type Database = {
           joined?: boolean
           level?: string | null
           nom: string
+          photo_error?: string | null
+          photo_missing?: boolean
           prenom: string
           rotation?: string | null
         }
@@ -39,6 +43,8 @@ export type Database = {
           joined?: boolean
           level?: string | null
           nom?: string
+          photo_error?: string | null
+          photo_missing?: boolean
           prenom?: string
           rotation?: string | null
         }
